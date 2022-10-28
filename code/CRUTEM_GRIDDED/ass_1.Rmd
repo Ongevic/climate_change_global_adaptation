@@ -1,0 +1,75 @@
+---
+title: "Suggested_Assignment"
+author: "Victor Nyabuti Ong'era"
+date: "2022-10-27"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## 1. Run the temp anomaly analyses on our newly acquired data 
+Go the folder where the data was saved select the first column  then Data >
+text to columns > next > then check thecsemicolon tab > next >next > finish
+
+
+Import the data 
+```{R}
+library(tidyverse)
+library(reshape2)
+path1 = "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/output/CRUTEM_GRIDDED/tables/"
+
+values = as.matrix(read.table(paste(path1,"Grid_points_5_19_35_47_1.csv", sep=""), sep = ",",dec = "."))
+
+values <- as.data.frame(values)
+values1 <- values[,3]
+is.numeric(values1)
+values1 <- as.data.frame(values1)
+colnames(values) <- c("year", "month" , "mean")
+
+values <- values %>%
+    mutate(month = recode(month, "1" = 'Jan', "2" = 'Feb', "3" =  'Mar', 
+                          "4" = 'Apr', "5" = 'May', "6" =  'Jun',
+                          "7" = 'Jul', "8" = 'Aug', "9" =  'Sept',
+                          "10" = 'Oct', "11" = 'Nov', "12" =  'Dec'
+                        
+                          ))
+```
+
+Now  we can have a small peak at the *values variable*
+
+```{r}
+head(values)
+
+
+
+```
+
+Lets find number of rows and columns
+```{R}
+n_column = length(values[1,])  # number of columns
+n_rows   = length(values[,1]) #  number of rows
+
+start_year <- values[1,1]
+end_year <- values[length(values[,1]),1]
+n_year <- end_year-start_year+1
+
+#I calculate for each year the yearly average. I do it in two different ways. I put the results in a matrix
+#1? method: I use the cycle for
+annual_mean_1 <- matrix(ncol=2,nrow=n_year) #empty matrix
+
+annual_mean_1[,1] <- start_year:end_year #column values years
+
+i <- start_year
+for(i in 1:n_year){
+  annual_mean_1[,i] <- mean(values1[,i],na.rm=FALSE)
+  i <- start_year + 1
+} 
+
+```
+
+
+```
+
