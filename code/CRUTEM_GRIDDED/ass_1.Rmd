@@ -10,66 +10,41 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-## 1. Run the temp anomaly analyses on our newly acquired data 
-Go the folder where the data was saved select the first column  then Data >
-text to columns > next > then check thecsemicolon tab > next >next > finish
+## 1. Run the temp anomaly analyses on our newly acquired Gridded data 
 
 
-Import the data 
+From the gridded exercise we generated data of our grid. So now we are going to
+run some temperature trends analysis on this data.
+
+As usual define the path where zou are going to get the data and also where you
+will save the data.
+
+
 ```{R}
-library(tidyverse)
-library(reshape2)
 path1 = "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/output/CRUTEM_GRIDDED/tables/"
 
-values = as.matrix(read.table(paste(path1,"Grid_points_5_19_35_47_1.csv", sep=""), sep = ",",dec = "."))
+path2 <- "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/output/CRUTEM_GRIDDED/plots/" 
 
-values <- as.data.frame(values)
-values1 <- values[,3]
-is.numeric(values1)
-values1 <- as.data.frame(values1)
-colnames(values) <- c("year", "month" , "mean")
 
-values <- values %>%
-    mutate(month = recode(month, "1" = 'Jan', "2" = 'Feb', "3" =  'Mar', 
-                          "4" = 'Apr', "5" = 'May', "6" =  'Jun',
-                          "7" = 'Jul', "8" = 'Aug', "9" =  'Sept',
-                          "10" = 'Oct', "11" = 'Nov', "12" =  'Dec'
-                        
-                          ))
-```
-
-Now  we can have a small peak at the *values variable*
-
-```{r}
+values = as.matrix(read.table(paste(path1,"Temperature_anomaly_mean_5_19_35_47.csv", sep=""), sep = ",",dec = "."))
+                                    
 head(values)
 
+```
+
+Now  lets transform this data into a workable table 
+
+```{r}
+temp_matrix <- matrix(data=temp_selected[,"Mean"],ncol=12,nrow=(n_year-1),byrow=TRUE)
+temp_matrix <- cbind((start_year:(end_year-1)),temp_matrix)
+colnames(temp_matrix) <- c("Year","January","February","March","April","May","June","July","August","September","October","November","December")
+
+write.table(temp_matrix,paste(path,"Monthly_temperature_anomaly_mean_matrix_",area_lon_min,"_",area_lon_max,"_",area_lat_min,"_",area_lat_max,".csv",sep=""),sep=";",col.names=TRUE,row.names=FALSE,quote=FALSE)
 
 
 ```
 
-Lets find number of rows and columns
-```{R}
-n_column = length(values[1,])  # number of columns
-n_rows   = length(values[,1]) #  number of rows
-
-start_year <- values[1,1]
-end_year <- values[length(values[,1]),1]
-n_year <- end_year-start_year+1
-
-#I calculate for each year the yearly average. I do it in two different ways. I put the results in a matrix
-#1? method: I use the cycle for
-annual_mean_1 <- matrix(ncol=2,nrow=n_year) #empty matrix
-
-annual_mean_1[,1] <- start_year:end_year #column values years
-
-i <- start_year
-for(i in 1:n_year){
-  annual_mean_1[,i] <- mean(values1[,i],na.rm=FALSE)
-  i <- start_year + 1
-} 
-
-```
 
 
-```
+
 

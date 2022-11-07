@@ -1,4 +1,4 @@
-path1 = "C:/Users/VICTOR_NYABUTI/Climate/data/"
+path1 = "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/data/CRUTEM_REANALYSIS/"
 
 values = as.matrix(read.table(paste(path1,"GL.csv", sep=""), sep = ",",dec = "."))
 
@@ -55,6 +55,7 @@ temp  = temp[-length(temp[,1]),] #to remove the last row
 
 
 perc  = perc[-(1:7),]
+
 perc  = perc[-length(perc[,1]),]
 
 colnames(temp) = c("Year", "January" , "February", "March", "April", "May", "June", "July","Aug", "Sep","Oct", "Nov", "December")
@@ -67,11 +68,12 @@ temp[,1]  #or
 temp["Year"] #for more general 
 
 #diff for df because in data frame we use $
-path2 = "C:/Users/VICTOR_NYABUTI/Climate/output/"
+path2 = "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/output/CRUTEM_REANALYSIS/tables/"
 
 
 #what, where the name and path its very important to define the wd and exporting the direcory
 write.table(temp,paste(path2,"Temparature_anomally.csv", sep = ""), sep = ",",col.names = TRUE, row.names = FALSE, quote =FALSE )
+
 
 
 # we wanna work on the same file. one started 1850 another 1857 

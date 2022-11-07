@@ -1,0 +1,829 @@
+---
+title: "Working with Copenicus"
+author: "Victor Nyabuti Ong'era"
+date: "2022-10-28"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+##  How to download data from Copenicus
+
+First you should have your area that you are intrested in.To selct an area go to Google earth.
+
+Turn on the grids by going to the view > check grids. i have highlighted 
+in yellow the grids section and also a place where you can read in real time 
+the coordinates of the area we are intrested in
+
+
+```{r  echo=FALSE, fig.cap="A caption", out.width = '100%'}
+knitr::include_graphics("C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/download.png")
+```
+
+sometimes when zooming in you might end up not see the grids clearlz so it can be beneficial to turn off other layers at the lower left part of the screen
+
+```{r , echo=FALSE}
+knitr::include_graphics("C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/download1.png")
+```
+
+when you have your coordinates,Head to their website, sign up.
+
+Look for era5 
+
+```{r out.width = "100%"}
+path6 <- "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/data/Copenicus/copenicus.png "
+path7 <- "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/data/Copenicus/copenicus1.png "
+path8 <-  "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/data/Copenicus/copenicus3.png "
+path9 <- "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/data/Copenicus/copenicus4.png "
+knitr::include_graphics(path6)
+
+```
+
+we use *ERA5 hourly data on single levels from 1959 to present*
+
+```{r out.width = "100%"}
+knitr::include_graphics(path7)
+```
+  
+Select the data set
+
+you will land at the overview tab
+
+Next to it we have the *Download data*
+
+```{r out.width = "100%"}
+knitr::include_graphics(path8)
+```
+
+
+Check the following:
+
+**Product type** :Monthly averaged reanalysis
+
+**variable  ** : 2m tenoerature
+
+**year**: All except 2022 because the last year is not complete so the matrix 
+has 4 deimesnsion instead of 3.
+
+**Month **:  All
+
+**Day** :  All
+
+**Day**:  All
+
+**Time** :  00:00
+
+**Region** : Subregion. put the cordinates of the are szthat zu wangt to
+download the data from
+ 
+**Format**: NetCDF (experimental)
+
+Then finally jut download. It wll take a few minutes depending on your area
+
+```{r out.width = "100%"}
+knitr::include_graphics(path9)
+```
+
+Now we have the data. Lets have a look
+
+```{r}
+library(ncdf4) #Package that is necessary to install and then to upload
+#in order to read the netCDF files
+library(lubridate) #Package that is necessary to install and then to upload 
+#in order to find the leap years
+#path where there are the input files and where I will put the output files
+path1 <- "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/data/Copenicus/"
+
+#nc_open() is the function included in the ncdf4 package necessary 
+#to use to read a netCDF file
+nc <- nc_open(paste(path1,"adaptor.mars.internal-1666964178.6106884-18053-4-9f44f851-2eaf-494c-9472-e2bafa75693e.nc",sep=""))
+#I print in the console all the information included in the netCDF 
+#file that are now saved in the nc variable
+#I can check the variables included and their name. The unit of the variables, 
+#the size and so on..
+nc
+
+```
+Lets have a closer look at this data. The values we are intrested in are:
+
+**Variables** we have a total of 6\
+**Units** In kelvins \
+**time** in days since 1850-01-01 00:00:00\
+**latitude and long** 36 N 72 E\
+**Glbal attributes** that give a bit more information on the whole thing\
+
+It says that we have 2m air temp over land blended with sea water temparature
+at  a depth of 20cm
+
+Lets extract this data
+
+```{r}
+#ncvar_get() is the function included in the ncdf4 package necessary 
+#to read a variable saved in the netCDF file
+data <- ncvar_get(nc,"t2m") #Matrix three-dimensional
+longitude <- ncvar_get(nc,"longitude") #Vector
+latitude <- ncvar_get(nc,"latitude") #Vector
+
+time <- ncvar_get(nc,"time") #Vector
+nhours <- length(time)
+```
+Lets do some cleaning
+
+```{r}
+#leap_year() is a function included in the lubridate package that is necessary 
+#to find if a year is leap
+#It get a vector with FALSE if a year is not leap and TRUE if a year is leap
+#I consider the first and the last possible year
+year_leap <- leap_year(1900:2021)
+start_year <- 1900 #defines the start year
+end_year <- 2021 #defines the lasz year
+years <- c(1900:2021)#prints all the years
+n_year <- end_year-start_year+1 #number of years
+
+```
+
+**Time**
+
+Remember that our time is in hours.\
+We have 24 hours per day\
+
+So how do we calculate our time?\
+Our first Month is January. At that time we had no data from previous months 
+therefore  time is 0.\
+On our subsequent Months  lets say february time is 
+```{latex}
+No_of_days(nday)*hours(24)+ time from previous month
+```
+
+Lets make a matrix with this information
+
+```{r}
+day_sequence <- matrix(ncol=3,nrow=(n_year*12))#empty matrix
+day_sequence[,1] <- rep(c(start_year:end_year),each=12)#replicates each year 12 times 
+day_sequence[,2] <- rep(c(1:12),times=n_year)#replicates 1:12 in all years
+
+```
+
+**Note**for the if fucntion we do not need to write a the brackets if the whole fucntion is on the same line but if they are in different lines then we need brackets
+
+```{r}
+for(i in 1:length(day_sequence[,1])){
+#for all years. found in the first column of the matrix day_sequence
+  month <- day_sequence[i,2]
+    #moths are in column 2 
+  year <- day_sequence[i,1]
+    #years are in column 1
+  if(month==1 | month==3 | month==5 | month==7 | month==8 | month==10 | month==12) nd <- 31
+#if the month has 31 days i.e jan, march etc allocate 31 to the variable nd(number of days)
+  if(month==4 | month==6 | month==9 | month==11) nd <- 30
+#if the month has 30 days i.e jan, march etc allocate 30 to the variable nd(number of days)
+  if(month==2 & !leap_year(year)) nd <- 28
+#if the month is 2/feb and the year is not leap put 28
+  if(month==2 & leap_year(year)) nd <- 29
+#if the month is 2/feb and the year  leap put 29
+  if(i==1) {
+    day_sequence[i,3] <- 0
+    nhours <- nd*24
+  }
+#if i(the first year)then the third column will have a value of 0 remeber why juary has no value?
+#otherwise if the value is not 1 then the third column will have an added value from
+#nhours(previous month)+ values from the current month
+  if(i!=1){
+    day_sequence[i,3] <- nhours+day_sequence[i-1,3]
+    nhours <- nd*24
+  } 
+}
+```
+
+Now lets filter this data to just our specific area
+```{r}
+#I check which time element are present in my data. day sequence includes all
+# the possible times from the beginning to the end my it is not mandatory that all these times are present in my data
+time_ok <- vector()
+for(i in 1:length(time)){
+  time_ok[i] <- which(time[i]==day_sequence[,3])
+}
+day_sequence <- day_sequence[time_ok,]#new day sequence
+
+#The matrix with the data includes the monthly values for all the available grid-points
+#I cut a part and I calculate the monthly mean for the selected area
+#to get the are you can diretly write them from the area ypu downloaded the data from
+#latitude which return all latitudes
+#longitude which returns al the löngitudes
+latitude
+area_lon_min <- -33
+area_lon_max <- 41
+area_lat_min <- -4
+area_lat_max <-  3
+
+#I search the grid-points included in the selected area
+lat_selected <- which(latitude>=area_lat_min & latitude<=area_lat_max)
+lon_selected <- which(longitude>=area_lon_min & longitude<=area_lon_max)
+
+#Number of point included in the selected area
+npoint_selected <- length(lat_selected)*length(lon_selected)
+npoint_selected 
+
+
+#Coordinates of the selected from-points
+grid_selected <- matrix(ncol=2,nrow=npoint_selected)#empty matrix
+head(grid_selected)
+colnames(grid_selected) <- c("Latitude","Longitude")
+head(grid_selected)
+
+ii <- 0
+for(i in 1:length(lat_selected)){
+  for(j in 1:length(lon_selected)){
+    ii <- ii+1
+    grid_selected[ii,"Latitude"] <- latitude[lat_selected[i]]
+    grid_selected[ii,"Longitude"] <- longitude[lon_selected[j]]
+  }
+}
+
+head(grid_selected)
+
+path <- "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/output/Copenicus/ "
+
+#export as table
+
+write.table(grid_selected,paste(path,"Grid_points_",area_lon_min,"_",area_lon_max,"_",area_lat_min,"_",area_lat_max,".csv",sep=""),sep=";",col.names=TRUE,row.names=FALSE,quote=FALSE)
+
+#For each month I extract the temperature anomaly data of the selected area and I calculate the area mean
+temp_selected <- vector()
+for(i in 1:length(day_sequence[,1])){
+  data_selected <- data[lon_selected,lat_selected,i]
+  temp_selected[i] <- mean(data_selected,na.rm=TRUE)-273.15
+}
+
+temp_selected <- cbind(day_sequence,temp_selected)
+colnames(temp_selected) <- c("Year","Month","Number_of_hours","Mean")
+
+write.table(temp_selected,paste(path,"Temperature_anomaly_mean_",area_lon_min,"_",area_lon_max,"_",area_lat_min,"_",area_lat_max,".csv",sep=""),sep=";",col.names=TRUE,row.names=FALSE,quote=FALSE)
+
+number_of_year<- day_sequence[length(day_sequence[,1]),1]-day_sequence[1,1]+1
+temp_matrix <- matrix(data=temp_selected[,"Mean"],ncol=12,nrow=number_of_year,byrow=TRUE)
+temp_matrix <- cbind(c(day_sequence[1,1]:day_sequence[length(day_sequence[,1]),1]),temp_matrix)
+colnames(temp_matrix) <- c("Year","January","February","March","April","May","June","July","August","September","October","November","December")
+
+write.table(temp_matrix,paste(path,"Monthly_temperature_anomaly_mean_matrix_",area_lon_min,"_",area_lon_max,"_",area_lat_min,"_",area_lat_max,".csv",sep=""),sep=";",col.names=TRUE,row.names=FALSE,quote=FALSE)
+```
+
+## ASSIGNMENT ATTEMPT
+
+After this I can perform. The analysis which we did in previous data.
+
+
+```{r}
+temp = as.matrix(temp_matrix)
+
+n_column = length(temp[1,])  # number of columns
+n_rows   = length(temp[,1]) #  number of rows
+n_column 
+n_rows
+
+#Number of years
+#
+start_year <- temp[1,1]
+start_year
+end_year <- temp[length(temp[,1]),1]
+end_year
+n_year <- end_year-start_year+1
+
+#yearly average in a matrix
+
+annual_mean_1 <- matrix(ncol=2,nrow=n_year) #empty ,matrix 
+
+
+annual_mean_1[,1] <- start_year:end_year # defined what is the column, the row by [,1]
+
+head(annual_mean_1) #now the matrix has a column 
+
+for(i in 1:n_year){
+  annual_mean_1[i,2] <- mean(temp[i,2:13],na.rm=FALSE)
+} 
+head(annual_mean_1)
+
+colnames(annual_mean_1) <- c("Year","Annual_mean") #name of columns. 
+head(annual_mean_1)
+
+write.table(annual_mean_1,paste(path,"Yearly_average_temperature_anomaly.csv",sep=""),sep=";",col.names=TRUE,row.names=FALSE,quote=FALSE)
+
+
+# so now  we need to do some plotinng 
+
+# we are using the package ggplot 
+
+#to use the data we need to comvert the dat into a data frame. ggplot works witth data frames
+annual_mean <- as.data.frame(annual_mean_1)
+
+library(ggplot2)
+
+
+moving_average <- matrix(ncol=4,nrow=n_year) #an empty matrix where we will put our means
+
+head(moving_average)
+
+colnames(moving_average) <- c("Year","Window_1","Window_2","Window_3")#inserting column names
+
+head(moving_average)
+
+moving_average[,1] <- start_year:end_year #years for the first column
+head(moving_average)
+
+#1 window
+window_1 <- 5
+
+
+start_1 <- ((window_1-1)/2)+1 #First row where I can calculate the moving average
+
+start_1
+
+end_1 <- n_year-((window_1-1)/2) #Last row where I can calculate the moving average
+
+end_1 
+
+for(i in start_1:end_1){
+  moving_average[i,"Window_1"] <- mean(annual_mean[(i-((window_1-1)/2)):(i+((window_1-1)/2)),"Annual_mean"])
+}
+
+head(moving_average)
+
+#2 window
+window_2 <- 11
+start_2 <- ((window_2-1)/2)+1 #First row where I can calculate the moving average
+end_2 <- n_year-((window_2-1)/2) #Last row where I can calculate the moving average
+start_2
+end_2
+
+
+for(i in start_2:end_2){
+  moving_average[i,"Window_2"] <- mean(annual_mean[(i-((window_2-1)/2)):(i+((window_2-1)/2)),"Annual_mean"])
+}
+
+head(moving_average)
+
+#3 window
+window_3 <- 21
+start_3 <- ((window_3-1)/2)+1 #First row where I can calculate the moving average
+end_3 <- n_year-((window_3-1)/2) #Last row where I can calculate the moving average
+start_3 
+end_3
+
+for(i in start_3:end_3){
+  moving_average[i,"Window_3"] <- mean(annual_mean[(i-((window_3-1)/2)):(i+((window_3-1)/2)),"Annual_mean"])
+}
+
+tail(moving_average)
+
+
+write.table(moving_average,paste(path,"Moving_averages.csv",sep=""),sep=";",col.names=TRUE,row.names=FALSE,quote=FALSE)
+
+
+#some plotting 
+
+moving_average <- as.data.frame(moving_average)
+
+#I plot the yearly average temperature anomaly and the three different moving averages
+
+ggplot()+ #I create a grey paper
+  geom_line(data=annual_mean,aes(x=Year,y=Annual_mean,colour="Temp"),size=.75)+ #I add a line. 
+  #The data are included in the dataframe annual_mean. On the X-axis I put the Years while on 
+  #the Y-axis I put the annual mean. I decide the size of the line and also the colour
+  geom_line(data=moving_average,aes(x=Year,y=Window_1,colour="Window 05"),size=.75)+
+  geom_line(data=moving_average,aes(x=Year,y=Window_2,colour="Window 11"),size=.75)+
+  geom_line(data=moving_average,aes(x=Year,y=Window_3,colour="Window 21"),size=.75)+
+  xlab("Year")+ #I change the title of the X-axis
+  ylab("Annual mean temperature [?C]")+ #I change the title of the Y-axis
+  theme_bw()+ #I change the background from gray that is the default to white
+  theme(axis.title.x = element_text(size=12), # I increase the size of the X-axis title 
+        #(You have to set hese numbers manually)
+        axis.title.y = element_text(size=12, angle=90), # I increase the size of the
+        #Y-axis title and I rotate it of an angle equal to 90? 
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        legend.text=element_text(size=9))+
+  labs(title = "Temperature Trend Over Time") +  
+  labs(subtitle = "Data Source: CRUTEM5 netCDF") +     
+  labs(col = "") +  
+  labs(x = "Years") +  
+  labs(y = "Annual Mean Temperatures") +  
+  labs(caption = "Trends: Victor Nyabuti for 'climate change impact and adaptation'")+
+  scale_colour_manual(values=c("black","blue","green","red"))+ #I add the legend
+  labs(colour="") # I remuve the title of the legend
+ggsave(file="Ex_Annual_mean_temperature_anomaly.png",path=path,dpi=500,width=40,height=40,units="cm") 
+#->
+
+
+#I calculate the trend over the whole period with the function lm
+y <- annual_mean[,"Annual_mean"]
+x <- annual_mean[,"Year"]
+trend <- lm(y ~ x)
+summary(trend) 
+
+#extract this values 
+slope <- as.numeric(coef(summary(trend))[, "Estimate"][2])
+intercept <- as.numeric(coef(summary(trend))[, "Estimate"][1])
+slope_error <- as.numeric(coef(summary(trend))[, "Std. Error"][2])
+intercept_error <- as.numeric(coef(summary(trend))[, "Std. Error"][1])
+significance <- as.numeric(coef(summary(trend))[, "Pr(>|t|)"][1])
+
+#I put the results in a matrix
+trend_results <- matrix(ncol=2,nrow=5)
+trend_results[1,1] <- "Slope" #name of row
+trend_results[1,2] <- slope
+trend_results[2,1] <- "Intercept"
+trend_results[2,2] <- intercept
+trend_results[3,1] <- "Slope_error"
+trend_results[3,2] <- slope_error
+trend_results[4,1] <- "Intercept_error"
+trend_results[4,2] <- intercept_error
+trend_results[5,1] <- "Significance"
+trend_results[5,2] <- significance
+trend_results
+write.table(trend_results,paste(path,"Trend_results.csv",sep=""),sep=";",col.names=FALSE,row.names=FALSE,quote=FALSE)
+
+
+
+
+#I calculate the residuals of the anomaly from the low-pass-filter
+#I calculate the standard deviation of the yearly temperature anomaly
+
+standard_deviation_anomaly <- sd(annual_mean[,2])
+
+
+#I calculate the residuals of the anomaly from the low-pass-filter
+
+
+residuals <- matrix(ncol=2,nrow=n_year)#empty matrix
+
+head(residuals)
+
+colnames(residuals) <- c("Year","Residuals")
+
+head(residuals)
+
+residuals[,"Year"] <- start_year:end_year
+
+head(residuals)
+
+residuals[,"Residuals"] <- annual_mean[,"Annual_mean"]-moving_average[,"Window_2"]
+
+print(residuals)
+
+standard_deviation_residuals <- sd(residuals[,"Residuals"],na.rm=TRUE)
+standard_deviation_anomaly
+
+
+```
+## Trial and Error
+
+# Area 2
+
+
+```{r}
+#area 2
+print(74*2)
+print(297-148)
+longitude[148]
+longitude[149]
+area_lon_min <- -3.75
+area_lon_max <- 4
+area_lat_min <- -3
+area_lat_max <-  2
+
+temp = as.matrix(temp_matrix)
+n_column = length(temp[1,])  
+n_rows   = length(temp[,1]) 
+start_year <- temp[1,1]
+start_year
+end_year <- temp[length(temp[,1]),1]
+end_year
+n_year <- end_year-start_year+1
+
+#yearly average in a matrix
+
+annual_mean_1 <- matrix(ncol=2,nrow=n_year) #empty ,matrix 
+
+
+annual_mean_1[,1] <- start_year:end_year # defined what is the column, the row by [,1]
+
+
+for(i in 1:n_year){
+  annual_mean_1[i,2] <- mean(temp[i,2:13],na.rm=FALSE)
+} 
+
+colnames(annual_mean_1) <- c("Year","Annual_mean") #name of columns. 
+
+write.table(annual_mean_1,paste(path,"Yearly_average_temperature_anomaly.csv",sep=""),sep=";",col.names=TRUE,row.names=FALSE,quote=FALSE)
+
+
+
+
+annual_mean <- as.data.frame(annual_mean_1)
+moving_average <- matrix(ncol=4,nrow=n_year) #an empty matrix where we will put our means
+
+colnames(moving_average) <- c("Year","Window_1","Window_2","Window_3")#inserting column names
+
+moving_average[,1] <- start_year:end_year #years for the first column
+
+#1 window
+window_1 <- 5
+
+
+start_1 <- ((window_1-1)/2)+1 #First row where I can calculate the moving average
+
+end_1 <- n_year-((window_1-1)/2) #Last row where I can calculate the moving average
+
+for(i in start_1:end_1){
+  moving_average[i,"Window_1"] <- mean(annual_mean[(i-((window_1-1)/2)):(i+((window_1-1)/2)),"Annual_mean"])
+}
+
+
+
+#2 window
+window_2 <- 11
+start_2 <- ((window_2-1)/2)+1 #First row where I can calculate the moving average
+end_2 <- n_year-((window_2-1)/2) #Last row where I can calculate the moving average
+
+for(i in start_2:end_2){
+  moving_average[i,"Window_2"] <- mean(annual_mean[(i-((window_2-1)/2)):(i+((window_2-1)/2)),"Annual_mean"])
+}
+
+
+#3 window
+window_3 <- 21
+start_3 <- ((window_3-1)/2)+1 #First row where I can calculate the moving average
+end_3 <- n_year-((window_3-1)/2) #Last row where I can calculate the moving average
+
+for(i in start_3:end_3){
+  moving_average[i,"Window_3"] <- mean(annual_mean[(i-((window_3-1)/2)):(i+((window_3-1)/2)),"Annual_mean"])
+}
+
+
+
+#some plotting 
+
+moving_average <- as.data.frame(moving_average)
+
+library(ggplot2)
+ggplot()+ #I create a grey paper
+  geom_line(data=annual_mean,aes(x=Year,y=Annual_mean,colour="Temp"),size=.75)+ 
+  geom_line(data=moving_average,aes(x=Year,y=Window_1,colour="Window 05"),size=.75)+
+  geom_line(data=moving_average,aes(x=Year,y=Window_2,colour="Window 11"),size=.75)+
+  geom_line(data=moving_average,aes(x=Year,y=Window_3,colour="Window 21"),size=.75)+
+  xlab("Year")+ #I change the title of the X-axis
+  ylab("Annual mean temperature [?C]")+ #I change the title of the Y-axis
+  theme_bw()+ #I change the background from gray that is the default to white
+  theme(axis.title.x = element_text(size=12), # I increase the size of the X-axis title 
+        #(You have to set hese numbers manually)
+        axis.title.y = element_text(size=12, angle=90), # I increase the size of the
+        #Y-axis title and I rotate it of an angle equal to 90? 
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        legend.text=element_text(size=9))+
+  labs(title = "Temperature Trend Over Time") +  
+  labs(subtitle = "Area 2") +     
+  labs(col = "") +  
+  labs(x = "Years") +  
+  labs(y = "Annual Mean Temperatures") +  
+  labs(caption = "Trends: Victor Nyabuti for 'climate change impact and adaptation'")+
+  scale_colour_manual(values=c("black","blue","green","red"))+ #I add the legend
+  labs(colour="") # I remuve the title of the legend
+ggsave(file="area2_Annual_mean_temperature_anomaly.png",path=path,dpi=500,width=40,height=40,units="cm") 
+
+
+```
+
+# Area 3
+
+```{r}
+#area 3
+print(74*3)
+print(297-222)
+longitude[222]
+longitude[75]
+
+area_lon_min <- -14.5
+area_lon_max <- 22.5
+area_lat_min <- -2
+area_lat_max <-  1
+
+temp = as.matrix(temp_matrix)
+n_column = length(temp[1,])  
+n_rows   = length(temp[,1]) 
+start_year <- temp[1,1]
+end_year <- temp[length(temp[,1]),1]
+
+n_year <- end_year-start_year+1
+
+#yearly average in a matrix
+
+annual_mean_1 <- matrix(ncol=2,nrow=n_year) #empty ,matrix 
+
+
+annual_mean_1[,1] <- start_year:end_year # defined what is the column, the row by [,1]
+
+head(annual_mean_1) #now the matrix has a column 
+
+for(i in 1:n_year){
+  annual_mean_1[i,2] <- mean(temp[i,2:13],na.rm=FALSE)
+} 
+colnames(annual_mean_1) <- c("Year","Annual_mean") #name of columns. 
+head(annual_mean_1)
+
+write.table(annual_mean_1,paste(path,"Yearly_average_temperature_anomaly.csv",sep=""),sep=";",col.names=TRUE,row.names=FALSE,quote=FALSE)
+
+
+
+annual_mean <- as.data.frame(annual_mean_1)
+moving_average <- matrix(ncol=4,nrow=n_year) #an empty matrix where we will put our means
+
+colnames(moving_average) <- c("Year","Window_1","Window_2","Window_3")#inserting column names
+
+moving_average[,1] <- start_year:end_year #years for the first column
+
+#1 window
+window_1 <- 5
+
+
+start_1 <- ((window_1-1)/2)+1 #First row where I can calculate the moving average
+
+end_1 <- n_year-((window_1-1)/2) #Last row where I can calculate the moving average
+
+for(i in start_1:end_1){
+  moving_average[i,"Window_1"] <- mean(annual_mean[(i-((window_1-1)/2)):(i+((window_1-1)/2)),"Annual_mean"])
+}
+
+
+
+#2 window
+window_2 <- 11
+start_2 <- ((window_2-1)/2)+1 #First row where I can calculate the moving average
+end_2 <- n_year-((window_2-1)/2) #Last row where I can calculate the moving average
+
+for(i in start_2:end_2){
+  moving_average[i,"Window_2"] <- mean(annual_mean[(i-((window_2-1)/2)):(i+((window_2-1)/2)),"Annual_mean"])
+}
+
+
+#3 window
+window_3 <- 21
+start_3 <- ((window_3-1)/2)+1 #First row where I can calculate the moving average
+end_3 <- n_year-((window_3-1)/2) #Last row where I can calculate the moving average
+
+
+for(i in start_3:end_3){
+  moving_average[i,"Window_3"] <- mean(annual_mean[(i-((window_3-1)/2)):(i+((window_3-1)/2)),"Annual_mean"])
+}
+
+
+
+#some plotting 
+
+moving_average <- as.data.frame(moving_average)
+
+
+library(ggplot2)
+ggplot()+ #I create a grey paper
+  geom_line(data=annual_mean,aes(x=Year,y=Annual_mean,colour="Temp"),size=.75)+  
+  geom_line(data=moving_average,aes(x=Year,y=Window_1,colour="Window 05"),size=.75)+
+  geom_line(data=moving_average,aes(x=Year,y=Window_2,colour="Window 11"),size=.75)+
+  geom_line(data=moving_average,aes(x=Year,y=Window_3,colour="Window 21"),size=.75)+
+  xlab("Year")+ 
+  ylab("Annual mean temperature [?C]")+ 
+  theme_bw()+ 
+  theme(axis.title.x = element_text(size=12),  
+        axis.title.y = element_text(size=12, angle=90), 
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        legend.text=element_text(size=9))+
+  labs(title = "Temperature Trend Over Time") +  
+  labs(subtitle = "Area 3") +     
+  labs(col = "") +  
+  labs(x = "Years") +  
+  labs(y = "Annual Mean Temperatures") +  
+  labs(caption = "Trends: Victor Nyabuti for 'climate change impact and adaptation'")+
+  scale_colour_manual(values=c("black","blue","green","red"))+ #I add the legend
+  labs(colour="") # I remuve the title of the legend
+ggsave(file="area3_Annual_mean_temperature_anomaly.png",path=path,dpi=500,width=40,height=40,units="cm") 
+
+
+```
+
+# Area 4
+
+```{r}
+#area 4
+area_lon_min <- -3.75
+area_lon_max <- 4
+area_lat_min <-  0
+area_lat_max <-  0
+
+temp = as.matrix(temp_matrix)
+n_column = length(temp[1,])  
+n_rows   = length(temp[,1]) 
+start_year <- temp[1,1]
+
+end_year <- temp[length(temp[,1]),1]
+
+n_year <- end_year-start_year+1
+
+#yearly average in a matrix
+
+annual_mean_1 <- matrix(ncol=2,nrow=n_year) #empty ,matrix 
+
+
+annual_mean_1[,1] <- start_year:end_year 
+
+
+for(i in 1:n_year){
+  annual_mean_1[i,2] <- mean(temp[i,2:13],na.rm=FALSE)
+} 
+
+
+colnames(annual_mean_1) <- c("Year","Annual_mean")
+head(annual_mean_1)
+
+write.table(annual_mean_1,paste(path,"Yearly_average_temperature_anomaly.csv",sep=""),sep=";",col.names=TRUE,row.names=FALSE,quote=FALSE)
+
+
+
+
+annual_mean <- as.data.frame(annual_mean_1)
+moving_average <- matrix(ncol=4,nrow=n_year) 
+colnames(moving_average) <- c("Year","Window_1","Window_2","Window_3")
+moving_average[,1] <- start_year:end_year 
+#1 window
+window_1 <- 5
+
+
+start_1 <- ((window_1-1)/2)+1 
+end_1 <- n_year-((window_1-1)/2) 
+for(i in start_1:end_1){
+  moving_average[i,"Window_1"] <- mean(annual_mean[(i-((window_1-1)/2)):(i+((window_1-1)/2)),"Annual_mean"])
+}
+
+
+
+#2 window
+window_2 <- 11
+start_2 <- ((window_2-1)/2)+1 
+end_2 <- n_year-((window_2-1)/2) 
+for(i in start_2:end_2){
+  moving_average[i,"Window_2"] <- mean(annual_mean[(i-((window_2-1)/2)):(i+((window_2-1)/2)),"Annual_mean"])
+}
+
+
+#3 window
+window_3 <- 21
+start_3 <- ((window_3-1)/2)+1 
+end_3 <- n_year-((window_3-1)/2) 
+for(i in start_3:end_3){
+  moving_average[i,"Window_3"] <- mean(annual_mean[(i-((window_3-1)/2)):(i+((window_3-1)/2)),"Annual_mean"])
+}
+
+
+
+#some plotting 
+
+moving_average <- as.data.frame(moving_average)
+
+#I plot the yearly average temperature anomaly and the three different moving averages
+library(ggplot2)
+ggplot()+ #I create a grey paper
+  geom_line(data=annual_mean,aes(x=Year,y=Annual_mean,colour="Temp"),size=.75)+ #I add a line. 
+  #The data are included in the dataframe annual_mean. On the X-axis I put the Years while on 
+  #the Y-axis I put the annual mean. I decide the size of the line and also the colour
+  geom_line(data=moving_average,aes(x=Year,y=Window_1,colour="Window 05"),size=.75)+
+  geom_line(data=moving_average,aes(x=Year,y=Window_2,colour="Window 11"),size=.75)+
+  geom_line(data=moving_average,aes(x=Year,y=Window_3,colour="Window 21"),size=.75)+
+  xlab("Year")+ #I change the title of the X-axis
+  ylab("Annual mean temperature [?C]")+ #I change the title of the Y-axis
+  theme_bw()+ #I change the background from gray that is the default to white
+  theme(axis.title.x = element_text(size=12), # I increase the size of the X-axis title 
+        #(You have to set hese numbers manually)
+        axis.title.y = element_text(size=12, angle=90), # I increase the size of the
+        #Y-axis title and I rotate it of an angle equal to 90? 
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        legend.text=element_text(size=9))+
+  labs(title = "Temperature Trend Over Time") +  
+  labs(subtitle = "Area 4") +     
+  labs(col = "") +  
+  labs(x = "Years") +  
+  labs(y = "Annual Mean Temperatures") +  
+  labs(caption = "Trends: Victor Nyabuti for 'climate change impact and adaptation'")+
+  scale_colour_manual(values=c("black","blue","green","red"))+ #I add the legend
+  labs(colour="") # I remuve the title of the legend
+ggsave(file="area4_Annual_mean_temperature_anomaly.png",path=path,dpi=500,width=40,height=40,units="cm") 
+
+```
+
+
+
+
+
+

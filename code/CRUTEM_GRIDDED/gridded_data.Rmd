@@ -3,73 +3,93 @@ title: "GRIDDED DATA FROM CRUTEM5"
 author: "Victor Nyabuti Ong'era"
 date: "2022-10-26"
 output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
-
 
 ## Lesson 1
 
-We are now looking at gridded data .This is another way  climatological data can be provided. As the name suggests the data is provided onto regular grids.
+We are now looking at gridded data .This is another way climatological
+data can be provided. As the name suggests the data is provided onto
+regular grids.
 
-So far what we were doing was reanalysis. So we will need to reproduce climatilogical features of reanalysis fields in the past
+So far what we were doing was reanalysis. So we will need to reproduce
+climatilogical features of reanalysis fields in the past
 
 This time our focus will not be globally but only over a selected grid
 
-After that we are going to run the same analysis we run on the previous excertation
+After that we are going to run the same analysis we run on the previous
+excertation
 
-
-After that we are going to consinder any other data sets which can be downloaded from the Copernicus Climate Data Store
+After that we are going to consinder any other data sets which can be
+downloaded from the Copernicus Climate Data Store
 
 https :://cds climate copernicus eu/#!/ home
 
-for now lets download our data from 
+for now lets download our data from
 
 https :://crudata uea ac uk/cru/data/temperature
 
-The file is 
- 
-CRUTEM5, netCDF
+The file is
 
+CRUTEM5, netCDF
 
 https :://cds climate copernicus eu/#!/ home
 
 so lets define the path
+
 ```{R}
 knitr::opts_chunk$set(error = TRUE)# iignore this line its just for an error
 #am getting when creating the document 
 ```
 
 ```{r setup, include=FALSE}
-path1 <- "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/data/"
+path1 <- "C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/data/CRUTEM_GRIDDED/"
 path3 <- "c:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/output/tables/"
 ```
 
-Then install all packages we need 
-
+Then install all packages we need
 
 ```{r}
 #install.packages("ncdf4","lubridate"  )
 ```
-which are responsible for raeding ncdf files and for finding leap years respetively
+
+which are responsible for raeding ncdf files and for finding leap years
+respetively
 
 Now lets load them
+
 ```{r}
 library(ncdf4)
 library(lubridate)
 ```
 
-open the file by allocating it to a variable *nc*. we use the function **paste**
+open the file by allocating it to a variable *nc*. we use the function
+**paste**
 
 ```{r}
 nc <- nc_open(paste(path1,"HadCRUT.5.0.1.0.anomalies.ensemble_mean.nc",sep=""))
 
 ```
-inspect the variable 
+
+inspect the variable
 
 ```{r}
 nc
 ```
 
-Lets extract this values so that we can work on the data. we need variables like  the temperature means,longitude, latitude  and even time . we use the function **ncvar_get()**
+Lets have a closer look at this data. The values we are intrested in
+are: **Variables** we have a total of 6 **Units** In kelvins **time** in
+days since 1850-01-01 00:00:00 **latitude and long** 36 N 72 E **Glbal
+attributes** that give a bit more information on the whole thing it says
+that we have 2m air temp ovróer land blennded withs ea water temparature
+at a depth of 20cm
+
+Lets extract this values so that we can work on the data. we need
+variables like the temperature means,longitude, latitude and even time .
+we use the function **ncvar_get()**
+
 ```{R}
 data <-  ncvar_get(nc,"tas_mean") #where we get a 3 dimensional matrix 
 ```
@@ -80,16 +100,18 @@ lets extract time,longitude and latitude
 longitude <- ncvar_get(nc,"longitude") #Vector
 latitude <- ncvar_get(nc,"latitude") #Vector
 time <- ncvar_get(nc,"time") #Vector
-
-
+longitude  # -177.5 177.5
+latitude # -87.5 to 87.5
 ```
+
 to get the number of months
 
 ```{R}
 nmonth <- length(time)
 ```
 
-This data is daily. We have leap and non leap years meaning that they do not have the same number of days
+This data is daily. We have leap and non leap years meaning that they do
+not have the same number of days
 
 ```{r}
 #Julian days for a non-leap years. The day in the mid of the month is considered
@@ -98,21 +120,47 @@ day <- c(15.5,45,74.5,105,135.5,166,196.5,227.5,258,288.5,319,349.5)
 day_leap <- c(15.5,45.5,75.5,106,136.5,167,197.5,228.5,259,289.5,320,350.5)
 ```
 
-We use the lubridate package that is necessary to find if a year is leap. Bacially returns tru or false if the year is leap or non leap repsectively from the very first year ti the very last year
+We use the lubridate package that is necessary to find if a year is
+leap. Bacially returns tru or false if the year is leap or non leap
+repsectively from the very first year ti the very last year
 
 ```{R}
-year_leap <- leap_year(1850:2022)
+year_leap <- leap_year(1850:2022) #figure out which years are leap
 start_year <- 1850
 end_year <- 2022
-years <- c(1850:2022)
+years <- c(1850:2022) #all years in one variable
 n_year <- end_year-start_year+1 # +1 ro include the very first year
 
-summary(year_leap)
-start_year
-end_year
-n_year
+summary(year_leap) #total number of leap ie True is 42
+n_year #total number of the years
 ```
 
+Now we would like to make a matrix that has the values of temperature
+
+Before that please note the following
+
+to say equal to in R we use = But to say same as we use **= =**  to say
+and we use &\
+to say or we use **\|**\
+to say is not equal we use an exclamation mark **!**\
+
+The breakdown of this code goes like this 
+
+for **i** remember now that that our **i** is years
+
+1.This years and from 1 :/to the *n_year* or last year\
+if the year is 1 i.e the first year, do the following\
+create a matrix and save it as a variable *day_sequence*ncol 3 nrow 12\
+fill the first column with the values from years\
+fill the second column with values 1,2,3, ...which are months\
+if the year is not leap put values from the *day* variable in the 3rd
+column\
+if the year is leap put the values from *day_leap* in the 3rd column\
+the number of days in anot leap year is 365\
+the number of days in leap year are 366
+
+After that we do the same thing but w ea re now not consindering the
+first year see the usage of **!=**?
 
 ```{R}
 for(i in 1:n_year){
@@ -121,9 +169,12 @@ for(i in 1:n_year){
     day_sequence <- matrix(ncol=3,nrow=12)# empty matrix
     day_sequence[,1] <- years[i] #for column 1 put value of i from the years 
     #variable
-    day_sequence[,2] <- c(1:12) # for column 2 put values in a sequence 1 to 12 i.e 1,2,3...12
-    if(year_leap[i]==FALSE) day_sequence[,3] <- day #If the year is not leap assighn it to variable day
-    if(year_leap[i]==TRUE) day_sequence[,3] <- day_leap #If the year is leap assighn it to variable day_leap
+    day_sequence[,2] <- c(1:12) # for column 2 put values in a sequence 1 
+    #to 12 i.e 1,2,3...12
+    if(year_leap[i]==FALSE) day_sequence[,3] <- day #If the year is not 
+    #leap assighn it to variable day
+    if(year_leap[i]==TRUE) day_sequence[,3] <- day_leap #If the year is leap 
+    #assighn it to variable day_leap
     if(year_leap[i]==FALSE) count_day <- 365
     if(year_leap[i]==TRUE) count_day <- 366
   }
@@ -142,14 +193,14 @@ for(i in 1:n_year){
 
 ```
 
-
 ## Lesson 2
 
-This data contains all the possible times from the beginning to the end my it 
-is not mandatory that all these times are present in our data
+This data contains all the possible times from the beginning to the end
+my it is not mandatory that all these times are present in our data
 
-we create a vector names time_ok. If zou just run the variable **time** you can 
-see all possible times. From that varibale we define our new vector time_ok. 
+we create a vector names time_ok. If zou just run the variable **time**
+you can see all possible times. From that varibale we define our new
+vector time_ok.
 
 ```{R}
 for(i in 1:length(time)){
@@ -157,42 +208,47 @@ for(i in 1:length(time)){
 }
 ```
 
-generally we are taking time_ok data from the 3rd column of the varibale *day_sequence*
+generally we are taking time_ok data from the 3rd column of the varibale
+*day_sequence*
 
 ```{r}
 day_sequence <- day_sequence[time_ok,]
 
 ```
-Now the variable *day_sequence* has data just for the right period *time_ok*
+
+Now the variable *day_sequence* has data just for the right period
+*time_ok*
 
 we do not need the last year 2022 because its incomplete.so we delete it
+
 ```{r}
 day_sequence <- day_sequence[-which(day_sequence[,1]==2022),]
 
 ```
 
-This matrix has data for all availlable grid points in time okay. But we need to
-work on a specific grid. In class we selected france. To know the right lat and 
-lon, we need to go to google earth.
+This matrix has data for all availlable grid points in time okay. But we
+need to work on a specific grid. In class we selected france. To know
+the right lat and lon, we need to go to google earth.
 
-
-If you have a donloaded version of gooogle earth search an area  in our case 
-france.Turn on the grids by going to the view > check grids. i have highlighted 
-in yellow the grids section and also a place where you can read in real time 
-the coordinates of the area we are intrested in
+If you have a donloaded version of gooogle earth search an area in our
+case france.Turn on the grids by going to the view \> check grids. i
+have highlighted in yellow the grids section and also a place where you
+can read in real time the coordinates of the area we are intrested in
 
 ```{r  echo=FALSE, fig.cap="A caption", out.width = '100%'}
 knitr::include_graphics("C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/download.png")
 ```
 
-
-sometimes when zooming in you might end up not see the grids clearlz so it can be beneficial to turn off other layers at the lower left part of the screen
+sometimes when zooming in you might end up not see the grids clearlz so
+it can be beneficial to turn off other layers at the lower left part of
+the screen
 
 ```{r pressure, echo=FALSE}
 knitr::include_graphics("C:/Users/VICTOR_NYABUTI/Climate/climate_change_global_adaptation/download1.png")
 ```
 
-so lets inspect france. It comes lovely the area covered by this coordinates 
+so lets inspect france. It comes lovely the area covered by this
+coordinates
 
 ```{r}
 #The matrix with the data includes the monthly values for all the available grid-points
@@ -277,10 +333,18 @@ write.table(temp_selected,paste(path3,"Temperature_anomaly_mean_",
                                 "_",area_lat_max,".csv",
                                 sep=""),,sep=";",col.names=TRUE,row.names=FALSE,
             quote=FALSE)
+
+#export this data into a workable matrix
+temp_matrix <- matrix(data=temp_selected[,"Mean"],ncol=12,nrow=(n_year-1),byrow=TRUE)
+temp_matrix <- cbind((start_year:(end_year-1)),temp_matrix)
+colnames(temp_matrix) <- c("Year","January","February","March","April","May","June","July","August","September","October","November","December")
+
+write.table(temp_matrix,paste(path,"Monthly_temperature_anomaly_mean_matrix_",area_lon_min,"_",area_lon_max,"_",area_lat_min,"_",area_lat_max,".csv",sep=""),sep=";",col.names=TRUE,row.names=FALSE,quote=FALSE)
 ```
 
-We now have data but instead of global the data is for a given area
-we can now run analysis on the data  just as we ddi from our earlier lessons 
+We now have data but instead of global the data is for a given area we
+can now run analysis on the data just as we ddi from our earlier lessons
+
 ```{R}
 knitr::purl()
 ```

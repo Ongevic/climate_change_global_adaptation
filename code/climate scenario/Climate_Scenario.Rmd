@@ -1,0 +1,12 @@
+---
+title: "Climate scenario"
+author: "Victor Nyabuti Ong'era"
+date: "2022-11-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
