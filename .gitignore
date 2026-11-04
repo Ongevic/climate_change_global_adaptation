@@ -37,3 +37,7 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# R workspace snapshots (e.g. myWorkSpace.RData) and history files
+*.RData
+*.Rhistory
